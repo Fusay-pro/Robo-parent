@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import client from '@/lib/api';
@@ -61,9 +62,11 @@ const AUTO_OPEN_KEY = 'parent_bell_auto_opened_v1';
 export default function NotificationBell() {
   const { t } = useT();
   const [open, setOpen] = useState(false);
-  const [dismissedTick, setDismissedTick] = useState(0); // re-render after dismiss
+  const [dismissedTick, setDismissedTick] = useState(0);
+  const [dropPos, setDropPos] = useState({ top: 0, right: 0 });
   const router = useRouter();
   const dropRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   const { data } = useQuery<Alerts>({
     queryKey: ['parent-alerts'],
@@ -90,7 +93,10 @@ export default function NotificationBell() {
 
   useEffect(() => {
     function handler(e: MouseEvent) {
-      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      const insideBtn = btnRef.current?.contains(target);
+      const insideDrop = dropRef.current?.contains(target);
+      if (!insideBtn && !insideDrop) setOpen(false);
     }
     if (open) document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -114,9 +120,16 @@ export default function NotificationBell() {
   const totalCount = low.length + out.length + cancelled.length;
 
   return (
-    <div className="relative" ref={dropRef}>
+    <div className="relative">
       <button
-        onClick={() => setOpen(v => !v)}
+        ref={btnRef}
+        onClick={() => {
+          if (!open && btnRef.current) {
+            const r = btnRef.current.getBoundingClientRect();
+            setDropPos({ top: r.bottom + 8, right: window.innerWidth - r.right });
+          }
+          setOpen(v => !v);
+        }}
         className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors shrink-0"
       >
         <span className="material-symbols-outlined text-on-surface-variant text-[22px]" style={totalCount > 0 ? { fontVariationSettings: "'FILL' 1" } : {}}>
@@ -129,8 +142,9 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-full mt-2 w-[340px] max-w-[calc(100vw-2rem)] bg-surface rounded-2xl shadow-2xl border border-outline-variant/30 overflow-hidden z-50">
+      {open && typeof document !== 'undefined' && createPortal(
+        <div ref={dropRef} style={{ position: 'fixed', top: dropPos.top, right: dropPos.right, zIndex: 9999 }}
+          className="w-[340px] max-w-[calc(100vw-1rem)] bg-surface rounded-2xl shadow-2xl border border-outline-variant/30 overflow-hidden">
           <div className="px-5 py-4 border-b border-outline-variant/20 flex items-center justify-between">
             <h3 className="font-bold text-on-surface text-base">{t('bell.notifications')}</h3>
             {totalCount > 0 && (
@@ -251,7 +265,8 @@ export default function NotificationBell() {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
