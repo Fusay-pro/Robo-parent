@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useT } from '@/context/I18nContext';
 import LanguageToggle from '@/components/LanguageToggle';
 import client from '@/lib/api';
+import { decodeJwt } from '@/lib/auth';
 
 export default function LoginPage() {
   const { signIn } = useAuth();
@@ -24,6 +25,11 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const { data } = await client.post('/auth/login', { email: email.trim(), password });
+      const payload = decodeJwt(data.access_token);
+      if (!payload || payload.role !== 'customer') {
+        setError(t('login.wrongPortal'));
+        return;
+      }
       signIn(data.access_token, data.refresh_token);
       router.replace('/dashboard');
     } catch (err: any) {
