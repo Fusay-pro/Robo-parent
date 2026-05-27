@@ -2,6 +2,7 @@
 
 import AppShell from '@/components/AppShell';
 import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import client from '@/lib/api';
@@ -11,7 +12,8 @@ import LanguageToggle from '@/components/LanguageToggle';
 import { useT } from '@/context/I18nContext';
 
 export default function SettingsPage() {
-  const { role } = useAuth();
+  const { role, signOut } = useAuth();
+  const router = useRouter();
   const qc = useQueryClient();
   const { t } = useT();
 
@@ -360,6 +362,19 @@ export default function SettingsPage() {
                   className="w-full py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2">
                   <span className="material-symbols-outlined text-[16px]">key</span>
                   {pwMut.isPending ? t('settings.updating') : t('settings.updatePw')}
+                </button>
+              </div>
+            </div>
+
+            {/* Sign Out */}
+            <div className="bg-surface-container-lowest rounded-2xl shadow-sm border border-error/20 overflow-hidden">
+              <div className="p-6">
+                <button
+                  onClick={() => { signOut(); router.replace('/login'); }}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-error text-white text-sm font-bold hover:opacity-90 transition-opacity"
+                >
+                  <span className="material-symbols-outlined text-[18px]">logout</span>
+                  {t('nav.logout')}
                 </button>
               </div>
             </div>
