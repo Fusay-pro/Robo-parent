@@ -27,7 +27,7 @@ export default function LoginPage() {
       const { data } = await client.post('/auth/login', { email: email.trim(), password });
       const payload = decodeJwt(data.access_token);
       if (!payload || payload.role !== 'customer') {
-        setError(t('login.wrongPortal'));
+        setError(t('login.invalidCreds'));
         return;
       }
       signIn(data.access_token, data.refresh_token);
