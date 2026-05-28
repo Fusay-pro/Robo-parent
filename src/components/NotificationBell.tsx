@@ -57,8 +57,6 @@ function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' });
 }
 
-const AUTO_OPEN_KEY = 'parent_bell_auto_opened_v1';
-
 export default function NotificationBell() {
   const { t } = useT();
   const [open, setOpen] = useState(false);
@@ -67,6 +65,7 @@ export default function NotificationBell() {
   const router = useRouter();
   const dropRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
+  const autoOpenedRef = useRef(false);
 
   function computeDropPos() {
     if (!btnRef.current || typeof window === 'undefined') return;
@@ -86,16 +85,15 @@ export default function NotificationBell() {
     staleTime: 30_000,
   });
 
-  // Auto-open the bell once per session when alerts arrive (e.g. first login)
+  // Auto-open once per login/page load when alerts exist.
   useEffect(() => {
-    if (typeof window === 'undefined' || !data) return;
-    if (sessionStorage.getItem(AUTO_OPEN_KEY)) return;
+    if (typeof window === 'undefined' || !data || autoOpenedRef.current) return;
     const has = (data.low_class_children?.length || 0)
               + (data.out_of_classes?.length || 0)
               + (data.cancelled_bookings?.length || 0);
     if (has > 0) {
       const t = setTimeout(() => {
-        sessionStorage.setItem(AUTO_OPEN_KEY, '1');
+        autoOpenedRef.current = true;
         computeDropPos();
         setOpen(true);
       }, 500);
