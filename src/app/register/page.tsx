@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -7,15 +7,25 @@ import client from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useT } from '@/context/I18nContext';
 import LanguageToggle from '@/components/LanguageToggle';
+import { getErrorMessage } from '@/lib/errors';
 
 interface Branch { branch_id: number; name: string; address?: string; phone?: string; }
+interface RegisterForm {
+  name: string;
+  email: string;
+  phone: string;
+  line_id: string;
+  password: string;
+  branch_id: string;
+}
+type FormField = 'name' | 'email' | 'phone';
 
 export default function RegisterPage() {
   const { signIn } = useAuth();
   const router = useRouter();
   const { t } = useT();
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ name: '', email: '', phone: '', line_id: '', password: '', branch_id: '' });
+  const [form, setForm] = useState<RegisterForm>({ name: '', email: '', phone: '', line_id: '', password: '', branch_id: '' });
   const [branches, setBranches] = useState<Branch[]>([]);
   const [otp, setOtp] = useState(['', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -30,7 +40,7 @@ export default function RegisterPage() {
         // Auto-select if only one branch
         if (r.data.length === 1) setForm(f => ({ ...f, branch_id: String(r.data[0].branch_id) }));
       })
-      .catch(() => { /* ignore — user can still see error on submit */ });
+      .catch(() => { /* ignore - user can still see error on submit */ });
   }, []);
 
   const handleStep1 = async (e: React.FormEvent) => {
@@ -50,8 +60,8 @@ export default function RegisterPage() {
       });
       setStep(2);
       setTimeout(() => otpRefs[0].current?.focus(), 100);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Registration failed');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Registration failed'));
     } finally {
       setLoading(false);
     }
@@ -77,8 +87,8 @@ export default function RegisterPage() {
       const { data } = await client.post('/auth/verify-otp', { email: form.email, otp: otp.join('') });
       signIn(data.access_token, data.refresh_token);
       router.replace('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Invalid OTP');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Invalid OTP'));
     } finally {
       setLoading(false);
     }
@@ -86,7 +96,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left — branding panel */}
+      {/* Left - branding panel */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-16 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #006686 100%)' }}>
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '32px 32px' }} />
         <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-white/5 blur-3xl" />
@@ -110,7 +120,7 @@ export default function RegisterPage() {
 
         <div className="relative z-10 space-y-3">
           {[
-            { icon: 'check_circle', text: 'Free to join — no credit card needed' },
+            { icon: 'check_circle', text: 'Free to join - no credit card needed' },
             { icon: 'check_circle', text: 'Real-time session updates' },
             { icon: 'check_circle', text: 'Direct line to your child\'s teacher' },
           ].map(({ icon, text }) => (
@@ -122,7 +132,7 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      {/* Right — form */}
+      {/* Right - form */}
       <div className="flex-1 flex items-center justify-center p-4 sm:p-8 bg-background">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
@@ -157,9 +167,9 @@ export default function RegisterPage() {
 
               <form onSubmit={handleStep1} className="space-y-4">
                 {[
-                  { field: 'name', label: t('register.fullName'), icon: 'person', type: 'text', placeholder: 'John Doe', required: true },
-                  { field: 'email', label: t('register.email'), icon: 'mail', type: 'email', placeholder: 'parent@example.com', required: true },
-                  { field: 'phone', label: t('register.phone'), icon: 'call', type: 'tel', placeholder: '+66 81 234 5678', required: true },
+                  { field: 'name' as FormField, label: t('register.fullName'), icon: 'person', type: 'text', placeholder: 'John Doe', required: true },
+                  { field: 'email' as FormField, label: t('register.email'), icon: 'mail', type: 'email', placeholder: 'parent@example.com', required: true },
+                  { field: 'phone' as FormField, label: t('register.phone'), icon: 'call', type: 'tel', placeholder: '+66 81 234 5678', required: true },
                 ].map(({ field, label, icon, type, placeholder, required }) => (
                   <div key={field} className="space-y-1.5">
                     <label className="text-sm font-semibold text-on-surface-variant">{label}</label>
@@ -168,7 +178,7 @@ export default function RegisterPage() {
                       <input
                         type={type}
                         placeholder={placeholder}
-                        value={(form as any)[field]}
+                        value={form[field]}
                         onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
                         required={required}
                         className="flex-1 bg-transparent border-none focus:ring-0 py-3.5 text-on-surface placeholder:text-outline outline-none"
@@ -302,3 +312,7 @@ export default function RegisterPage() {
     </div>
   );
 }
+
+
+
+

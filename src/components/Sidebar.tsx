@@ -1,4 +1,5 @@
-'use client';
+﻿'use client';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -6,18 +7,12 @@ import { useAuth } from '@/context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { useT } from '@/context/I18nContext';
 import client from '@/lib/api';
+import { NAV_ITEMS, isActivePath } from '@/lib/nav';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { signOut } = useAuth();
   const { t } = useT();
-
-  const NAV = [
-    { href: '/dashboard', icon: 'dashboard',      label: t('nav.dashboard') },
-    { href: '/schedule',  icon: 'calendar_month', label: t('nav.schedule') },
-    { href: '/requests',  icon: 'inbox',          label: t('nav.requests') },
-    { href: '/settings',  icon: 'settings',       label: t('nav.settings') },
-  ];
 
   const { data: profile } = useQuery<any>({
     queryKey: ['my-profile'],
@@ -38,8 +33,9 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 mt-4 px-4 space-y-1">
-        {NAV.map(({ href, icon, label }) => {
-          const active = pathname === href || pathname.startsWith(href + '/');
+        {NAV_ITEMS.map(({ href, icon, labelKey }) => {
+          const active = isActivePath(pathname, href);
+          const label = t(labelKey);
           return (
             <Link
               key={href}
@@ -58,7 +54,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="px-4 py-3 space-y-1">
-        {/* Compact branch pill — click to view full details */}
+        {/* Compact branch pill â€” click to view full details */}
         {profile?.branch_name && (
           <Link
             href="/branch"
@@ -81,3 +77,4 @@ export default function Sidebar() {
     </aside>
   );
 }
+

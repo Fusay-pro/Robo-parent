@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import Image from 'next/image';
 import client from '@/lib/api';
 import { useT } from '@/context/I18nContext';
+import { readLocalStorageJson, writeLocalStorageJson } from '@/lib/storage';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const STORAGE_KEY = 'seen_announcements_v1';
@@ -14,18 +16,13 @@ function resolveImg(u: string) {
 }
 
 function getSeen(): Set<number> {
-  if (typeof window === 'undefined') return new Set();
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return new Set();
-    return new Set(JSON.parse(raw) as number[]);
-  } catch { return new Set(); }
+  return new Set(readLocalStorageJson<number[]>(STORAGE_KEY, []));
 }
 function markSeen(id: number) {
   if (typeof window === 'undefined') return;
   const seen = getSeen();
   seen.add(id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify([...seen].slice(-50))); // keep last 50
+  writeLocalStorageJson(STORAGE_KEY, [...seen].slice(-50)); // keep last 50
 }
 
 interface Announcement {
@@ -37,9 +34,7 @@ interface Announcement {
 }
 
 export default function AnnouncementPopup() {
-  const { t } = useT();
-  const [open, setOpen] = useState(false);
-  const [current, setCurrent] = useState<Announcement | null>(null);
+  const { t, locale } = useT();
 
   const { data: announcements = [] } = useQuery<Announcement[]>({
     queryKey: ['parent-announcements'],
@@ -48,34 +43,29 @@ export default function AnnouncementPopup() {
     refetchInterval: 5 * 60_000,
   });
 
+  const [nowMs] = useState(() => Date.now());
   // Find the most recent unseen announcement (created within the last 14 days)
   const unseen = useMemo(() => {
     const seen = getSeen();
-    const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000;
+    const cutoff = nowMs - 14 * 24 * 60 * 60 * 1000;
     return announcements.find(a =>
       !seen.has(a.announcement_id) && new Date(a.created_at).getTime() >= cutoff
     );
-  }, [announcements]);
+  }, [announcements, nowMs]);
 
   useEffect(() => {
-    if (unseen && !open) {
-      setCurrent(unseen);
-      setOpen(true);
-      // Tell the server they saw it (best-effort; failure is fine)
-      client.post('/my/notifications/seen', {
-        type: 'announcement',
-        ref_id: unseen.announcement_id,
-      }).catch(() => { /* ignore */ });
-    }
-  }, [unseen, open]);
+    if (!unseen) return;
+    client.post('/my/notifications/seen', {
+      type: 'announcement',
+      ref_id: unseen.announcement_id,
+    }).catch(() => { /* ignore */ });
+  }, [unseen]);
 
   function close() {
-    if (current) markSeen(current.announcement_id);
-    setOpen(false);
-    setTimeout(() => setCurrent(null), 200);
+    if (unseen) markSeen(unseen.announcement_id);
   }
 
-  if (!open || !current) return null;
+  if (!unseen) return null;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -83,13 +73,16 @@ export default function AnnouncementPopup() {
       <div className="relative bg-surface rounded-3xl shadow-2xl z-10 w-full max-w-md overflow-hidden flex flex-col" style={{ maxHeight: '90vh' }}>
 
         {/* Optional image */}
-        {current.image_url && (
-          <img
-            src={resolveImg(current.image_url)}
-            alt=""
-            onError={e => (e.currentTarget.style.display = 'none')}
-            className="w-full h-48 object-cover bg-surface-container-low"
-          />
+        {unseen.image_url && (
+          <div className="relative w-full h-48 bg-surface-container-low">
+            <Image
+              src={resolveImg(unseen.image_url)}
+              alt=""
+              fill
+              unoptimized
+              className="object-cover"
+            />
+          </div>
         )}
 
         {/* Header */}
@@ -99,9 +92,9 @@ export default function AnnouncementPopup() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-wider text-primary">{t('announce.title')}</p>
-            <h3 className="text-lg font-bold text-on-surface mt-0.5 leading-tight">{current.title}</h3>
+            <h3 className="text-lg font-bold text-on-surface mt-0.5 leading-tight">{unseen.title}</h3>
             <p className="text-[11px] text-on-surface-variant mt-1">
-              {new Date(current.created_at).toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}
+              {new Date(unseen.created_at).toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           </div>
           <button onClick={close}
@@ -111,9 +104,9 @@ export default function AnnouncementPopup() {
         </div>
 
         {/* Body */}
-        {current.body && (
+        {unseen.body && (
           <div className="px-6 pb-5 overflow-y-auto">
-            <p className="text-sm text-on-surface whitespace-pre-wrap leading-relaxed">{current.body}</p>
+            <p className="text-sm text-on-surface whitespace-pre-wrap leading-relaxed">{unseen.body}</p>
           </div>
         )}
 

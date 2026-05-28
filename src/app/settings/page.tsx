@@ -1,44 +1,82 @@
-'use client';
+﻿'use client';
 
 import AppShell from '@/components/AppShell';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import client from '@/lib/api';
 import Link from 'next/link';
 import { enablePushNotifications, hasFirebaseConfig } from '@/lib/push';
 import LanguageToggle from '@/components/LanguageToggle';
 import { useT } from '@/context/I18nContext';
+import EditProfileModal from '@/components/settings/EditProfileModal';
+import AddChildModal from '@/components/settings/AddChildModal';
+import { getErrorMessage } from '@/lib/errors';
+
+interface ParentProfile {
+  name?: string;
+  phone?: string;
+  line_id?: string;
+  email?: string;
+  branch_id?: number;
+  branch_name?: string;
+}
+
+interface ParentKid {
+  student_id: number;
+  name: string;
+  nickname?: string;
+  approval_status?: 'approved' | 'pending' | string;
+}
+
+interface ProfileUpdatePayload {
+  name: string;
+  phone?: string;
+  line_id?: string;
+}
+
+interface AddKidPayload {
+  name: string;
+  nickname?: string;
+  date_of_birth?: string;
+  pre_existing_conditions?: string;
+  branch_id: number;
+}
+
+interface PasswordPayload {
+  current_password: string;
+  new_password: string;
+}
 
 export default function SettingsPage() {
-  const { role, signOut } = useAuth();
+  const { signOut } = useAuth();
   const router = useRouter();
   const qc = useQueryClient();
   const { t } = useT();
 
-  const { data: profile } = useQuery<any>({
+  const { data: profile } = useQuery<ParentProfile>({
     queryKey: ['my-profile'],
     queryFn: () => client.get('/my/profile').then(r => r.data),
   });
 
-  const { data: kids = [] } = useQuery<any[]>({
+  const { data: kids = [] } = useQuery<ParentKid[]>({
     queryKey: ['my-children'],
     queryFn: () => client.get('/my/children').then(r => r.data),
   });
 
-  // ── Edit profile modal ──
+  // -- Edit profile modal --
   const [profileModal, setProfileModal] = useState(false);
   const [profileForm, setProfileForm]   = useState({ name: '', phone: '', line_id: '' });
   const [profileErr, setProfileErr]     = useState('');
 
   const profileMut = useMutation({
-    mutationFn: (d: any) => client.patch('/my/profile', d).then(r => r.data),
+    mutationFn: (d: ProfileUpdatePayload) => client.patch('/my/profile', d).then(r => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['my-profile'] });
       setProfileModal(false);
     },
-    onError: (e: any) => setProfileErr(e?.response?.data?.error || t('settings.saveFailed')),
+    onError: (e: unknown) => setProfileErr(getErrorMessage(e, t('settings.saveFailed'))),
   });
   function openProfile() {
     setProfileForm({ name: profile?.name || '', phone: profile?.phone || '', line_id: profile?.line_id || '' });
@@ -55,18 +93,18 @@ export default function SettingsPage() {
     });
   }
 
-  // ── Add Child modal ──
+  // -- Add Child modal --
   const [addOpen, setAddOpen] = useState(false);
   const [kidForm, setKidForm] = useState({ name: '', nickname: '', date_of_birth: '', pre_existing_conditions: '' });
   const [kidErr, setKidErr]   = useState('');
 
   const addKidMut = useMutation({
-    mutationFn: (d: any) => client.post('/students', d),
+    mutationFn: (d: AddKidPayload) => client.post('/students', d),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['my-children'] });
       setAddOpen(false);
     },
-    onError: (e: any) => setKidErr(e?.response?.data?.error || t('settings.failedAddChild')),
+    onError: (e: unknown) => setKidErr(getErrorMessage(e, t('settings.failedAddChild'))),
   });
   function submitAddKid() {
     setKidErr('');
@@ -81,17 +119,15 @@ export default function SettingsPage() {
     });
   }
 
-  // ── Push notifications ──
-  const [pushStatus, setPushStatus] = useState<'idle' | 'enabling' | 'enabled' | 'denied' | 'unsupported' | 'error'>('idle');
+  // -- Push notifications --
+  const [pushStatus, setPushStatus] = useState<'idle' | 'enabling' | 'enabled' | 'denied' | 'unsupported' | 'error'>(() => {
+    if (typeof window === 'undefined') return 'idle';
+    if (!('Notification' in window)) return 'unsupported';
+    if (Notification.permission === 'granted') return 'enabled';
+    if (Notification.permission === 'denied') return 'denied';
+    return 'idle';
+  });
   const [pushErr, setPushErr] = useState('');
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      if (Notification.permission === 'granted') setPushStatus('enabled');
-      else if (Notification.permission === 'denied') setPushStatus('denied');
-    } else {
-      setPushStatus('unsupported');
-    }
-  }, []);
   async function enablePush() {
     setPushStatus('enabling');
     setPushErr('');
@@ -104,20 +140,20 @@ export default function SettingsPage() {
     }
   }
 
-  // ── Password ──
+  // -- Password --
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
   const [pwErr, setPwErr]   = useState('');
   const [pwOk, setPwOk]     = useState(false);
   const [showPw, setShowPw] = useState(false);
 
   const pwMut = useMutation({
-    mutationFn: (d: any) => client.patch('/users/me/password', d),
+    mutationFn: (d: PasswordPayload) => client.patch('/users/me/password', d),
     onSuccess: () => {
       setPwOk(true);
       setPwForm({ current: '', next: '', confirm: '' });
       setTimeout(() => setPwOk(false), 3000);
     },
-    onError: (e: any) => setPwErr(e?.response?.data?.error || t('settings.failedPw')),
+    onError: (e: unknown) => setPwErr(getErrorMessage(e, t('settings.failedPw'))),
   });
   function submitPassword() {
     setPwErr('');
@@ -174,7 +210,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">{t('settings.name')}</p>
-                    <p className="font-semibold text-on-surface text-sm truncate">{profile?.name || '—'}</p>
+                    <p className="font-semibold text-on-surface text-sm truncate">{profile?.name || '-'}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 px-6 py-4">
@@ -183,7 +219,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">{t('settings.phone')}</p>
-                    <p className="font-semibold text-on-surface text-sm truncate">{profile?.phone || '—'}</p>
+                    <p className="font-semibold text-on-surface text-sm truncate">{profile?.phone || '-'}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 px-6 py-4">
@@ -192,7 +228,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">{t('settings.email')}</p>
-                    <p className="font-semibold text-on-surface text-sm truncate">{profile?.email || '—'}</p>
+                    <p className="font-semibold text-on-surface text-sm truncate">{profile?.email || '-'}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 px-6 py-4">
@@ -201,7 +237,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">{t('settings.lineId')}</p>
-                    <p className="font-semibold text-on-surface text-sm truncate">{profile?.line_id || '—'}</p>
+                    <p className="font-semibold text-on-surface text-sm truncate">{profile?.line_id || '-'}</p>
                   </div>
                 </div>
               </div>
@@ -235,7 +271,7 @@ export default function SettingsPage() {
                 </div>
               ) : (
                 <div className="divide-y divide-outline-variant/20">
-                  {kids.map((k: any) => {
+                  {kids.map((k) => {
                     const approved = k.approval_status === 'approved';
                     return (
                       <Link key={k.student_id} href={`/kids/${k.student_id}`}
@@ -311,7 +347,7 @@ export default function SettingsPage() {
                 <span className="material-symbols-outlined text-primary text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>translate</span>
               </div>
               <div className="p-6 flex items-center justify-between gap-4">
-                <p className="text-sm text-on-surface-variant">English / ภาษาไทย</p>
+                <p className="text-sm text-on-surface-variant">English / ???????</p>
                 <LanguageToggle />
               </div>
             </div>
@@ -383,136 +419,33 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Edit profile modal */}
-      {profileModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setProfileModal(false)} />
-          <div className="relative bg-surface rounded-3xl p-6 w-full max-w-sm shadow-2xl z-10">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-bold text-on-surface">{t('settings.editProfileTitle')}</h3>
-              <button onClick={() => setProfileModal(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-container transition-colors">
-                <span className="material-symbols-outlined text-on-surface-variant">close</span>
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5">{t('settings.displayName')}</label>
-                <input type="text" value={profileForm.name}
-                  onChange={e => setProfileForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder={t('settings.yourNamePlace')}
-                  className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5">{t('settings.phone')}</label>
-                <input type="tel" value={profileForm.phone}
-                  onChange={e => setProfileForm(f => ({ ...f, phone: e.target.value }))}
-                  placeholder={t('settings.phonePlace')}
-                  className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5">{t('settings.lineId')}</label>
-                <input type="text" value={profileForm.line_id}
-                  onChange={e => setProfileForm(f => ({ ...f, line_id: e.target.value }))}
-                  placeholder={t('settings.lineIdPlace')}
-                  className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              </div>
-              {profileErr && <p className="text-xs text-error bg-error-container/30 rounded-xl px-3 py-2">{profileErr}</p>}
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setProfileModal(false)}
-                className="flex-1 py-2.5 rounded-xl border border-outline-variant text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-colors">
-                {t('settings.cancel')}
-              </button>
-              <button onClick={saveProfile} disabled={profileMut.isPending}
-                className="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:opacity-90 disabled:opacity-50 transition-opacity">
-                {profileMut.isPending ? t('settings.saving') : t('settings.save')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <EditProfileModal
+        open={profileModal}
+        onClose={() => setProfileModal(false)}
+        onSave={saveProfile}
+        saving={profileMut.isPending}
+        error={profileErr}
+        form={profileForm}
+        setForm={setProfileForm}
+        t={t}
+      />
 
-      {/* Add child modal */}
-      {addOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setAddOpen(false)} />
-          <div className="relative bg-surface rounded-3xl shadow-2xl z-10 w-full max-w-md overflow-hidden flex flex-col" style={{ maxHeight: '90vh' }}>
-            <div className="px-6 pt-5 pb-3 border-b border-outline-variant/20">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>child_care</span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-on-surface">{t('addChild.title')}</h3>
-                    <p className="text-xs text-on-surface-variant">{t('addChild.reviewHint')}</p>
-                  </div>
-                </div>
-                <button onClick={() => setAddOpen(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-container transition-colors shrink-0">
-                  <span className="material-symbols-outlined text-on-surface-variant">close</span>
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">{t('addChild.fullName')} <span className="text-error">*</span></label>
-                <input value={kidForm.name}
-                  onChange={e => setKidForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="e.g. Nong Maxx"
-                  className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">{t('addChild.nickname')}</label>
-                  <input value={kidForm.nickname}
-                    onChange={e => setKidForm(f => ({ ...f, nickname: e.target.value }))}
-                    placeholder="e.g. Maxx"
-                    className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">{t('addChild.dob')}</label>
-                  <input type="date" value={kidForm.date_of_birth}
-                    onChange={e => setKidForm(f => ({ ...f, date_of_birth: e.target.value }))}
-                    max={new Date().toISOString().split('T')[0]}
-                    className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                  {t('addChild.medicalNotes')} <span className="normal-case font-normal tracking-normal">({t('addChild.medicalHint')})</span>
-                </label>
-                <textarea value={kidForm.pre_existing_conditions}
-                  onChange={e => setKidForm(f => ({ ...f, pre_existing_conditions: e.target.value }))}
-                  rows={3}
-                  placeholder={t('addChild.medicalPlace')}
-                  className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
-              </div>
-              {profile?.branch_name && (
-                <div className="bg-primary/5 border border-primary/20 rounded-xl px-3 py-2.5 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary text-[16px]">storefront</span>
-                  <span className="text-xs text-on-surface">
-                    {t('addChild.willBeReg')} <span className="font-bold text-primary">{profile.branch_name}</span>
-                  </span>
-                </div>
-              )}
-              {kidErr && <p className="text-xs text-error bg-error-container/30 rounded-xl px-3 py-2">{kidErr}</p>}
-            </div>
-            <div className="px-6 py-4 border-t border-outline-variant/20 flex gap-3 bg-surface">
-              <button onClick={() => setAddOpen(false)}
-                className="flex-1 py-2.5 rounded-xl border border-outline-variant text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-colors">
-                {t('addChild.cancel')}
-              </button>
-              <button onClick={submitAddKid} disabled={addKidMut.isPending}
-                className="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2">
-                <span className="material-symbols-outlined text-[16px]">send</span>
-                {addKidMut.isPending ? t('addChild.submitting') : t('addChild.submit')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AddChildModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onSubmit={submitAddKid}
+        submitting={addKidMut.isPending}
+        error={kidErr}
+        profileBranchName={profile?.branch_name}
+        form={kidForm}
+        setForm={setKidForm}
+        t={t}
+      />
     </AppShell>
   );
 }
+
+
+
+
+
