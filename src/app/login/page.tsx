@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -8,7 +8,6 @@ import { useT } from '@/context/I18nContext';
 import LanguageToggle from '@/components/LanguageToggle';
 import client from '@/lib/api';
 import { decodeJwt } from '@/lib/auth';
-import { getErrorMessage } from '@/lib/errors';
 
 export default function LoginPage() {
   const { signIn } = useAuth();
@@ -33,11 +32,11 @@ export default function LoginPage() {
       }
       signIn(data.access_token, data.refresh_token);
       router.replace('/dashboard');
-    } catch (err: unknown) {
-      if (!(typeof err === 'object' && err !== null && 'response' in err)) {
+    } catch (err: any) {
+      if (!err.response) {
         setError('Cannot connect to server. Is the backend running?');
       } else {
-        setError(getErrorMessage(err, t('login.invalidCreds')));
+        setError(err.response.data?.error || t('login.invalidCreds'));
       }
     } finally {
       setLoading(false);
@@ -46,7 +45,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left - branding panel */}
+      {/* Left — branding panel */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-16 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #006686 100%)' }}>
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '32px 32px' }} />
         <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-white/5 blur-3xl" />
@@ -61,16 +60,16 @@ export default function LoginPage() {
 
         <div className="relative z-10">
           <h1 className="text-5xl font-bold text-white leading-tight mb-6">
-            Nurturing<br />Tomorrow&apos;s<br />Engineers
+            Nurturing<br />Tomorrow's<br />Engineers
           </h1>
           <p className="text-white/70 text-lg leading-relaxed max-w-sm">
-            Track your child&apos;s robotics journey, manage sessions, and stay connected with their learning progress.
+            Track your child's robotics journey, manage sessions, and stay connected with their learning progress.
           </p>
         </div>
 
       </div>
 
-      {/* Right - form */}
+      {/* Right — form */}
       <div className="flex-1 flex items-center justify-center p-4 sm:p-8 bg-background">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
@@ -148,8 +147,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-
-
-
-

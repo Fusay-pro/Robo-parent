@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useRouter } from 'next/navigation';
 import { useT } from '@/context/I18nContext';
@@ -11,7 +11,7 @@ export default function TopBar() {
 
   return (
     <header className="sticky top-0 z-40 flex items-center gap-3 px-5 md:px-8 py-4 border-b border-outline-variant/40 bg-surface/90 backdrop-blur-xl">
-      {/* Logo (mobile only - desktop shows sidebar) */}
+      {/* Logo (mobile only — desktop shows sidebar) */}
       <span className="md:hidden text-primary font-bold text-base tracking-tight shrink-0">RoboKids</span>
 
       {/* Greeting / spacer */}
@@ -35,4 +35,3 @@ export default function TopBar() {
     </header>
   );
 }
-

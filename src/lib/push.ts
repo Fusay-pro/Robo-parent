@@ -1,4 +1,3 @@
-﻿/* eslint-disable @typescript-eslint/no-explicit-any */
 // Web push registration via Firebase Cloud Messaging.
 // Set these env vars in .env.local to enable:
 //   NEXT_PUBLIC_FIREBASE_API_KEY
@@ -41,7 +40,7 @@ async function initFirebase() {
 
 /**
  * Request notification permission, get an FCM token, and POST it to the backend.
- * Idempotent â€” safe to call on every login. Silently no-ops if Firebase isn't configured.
+ * Idempotent — safe to call on every login. Silently no-ops if Firebase isn't configured.
  */
 export async function enablePushNotifications(): Promise<{ ok: boolean; reason?: string }> {
   if (!isConfigured()) return { ok: false, reason: 'firebase-not-configured' };
@@ -82,7 +81,7 @@ export async function enablePushNotifications(): Promise<{ ok: boolean; reason?:
     return { ok: false, reason: `register-failed: ${e?.response?.data?.error || e.message}` };
   }
 
-  // Foreground messages â€” show a basic browser notification when the page is open
+  // Foreground messages — show a basic browser notification when the page is open
   onMessage(m, (payload) => {
     const title = payload.notification?.title || 'New notification';
     const body  = payload.notification?.body || '';
@@ -95,6 +94,3 @@ export async function enablePushNotifications(): Promise<{ ok: boolean; reason?:
 export function hasFirebaseConfig(): boolean {
   return isConfigured();
 }
-
-
-

@@ -1,19 +1,13 @@
-﻿'use client';
+'use client';
 
 import AppShell from '@/components/AppShell';
 import { useQuery } from '@tanstack/react-query';
 import client from '@/lib/api';
 import { useT } from '@/context/I18nContext';
 
-interface ParentBranchProfile {
-  branch_name?: string;
-  branch_address?: string;
-  branch_phone?: string;
-}
-
 export default function BranchPage() {
   const { t } = useT();
-  const { data: profile, isLoading } = useQuery<ParentBranchProfile>({
+  const { data: profile, isLoading } = useQuery<any>({
     queryKey: ['my-profile'],
     queryFn: () => client.get('/my/profile').then(r => r.data),
   });
@@ -121,6 +115,3 @@ export default function BranchPage() {
     </AppShell>
   );
 }
-
-
-

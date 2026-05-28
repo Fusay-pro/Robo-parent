@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import AppShell from '@/components/AppShell';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -6,47 +6,18 @@ import { useState } from 'react';
 import client from '@/lib/api';
 import Link from 'next/link';
 import { useT } from '@/context/I18nContext';
-import { getErrorMessage } from '@/lib/errors';
 
 const KID_COLORS = ['#0ea5e9', '#006686', '#bc0b3b', '#006591'];
 
-interface UpcomingSession {
-  starts_at: string;
-  course_name?: string;
-}
-
-interface KidSummary {
-  student_id: number;
-  name: string;
-  nickname?: string;
-  approval_status?: 'approved' | 'pending' | string;
-  class_count?: number;
-  classes_remaining?: number;
-  upcoming_sessions?: UpcomingSession[];
-}
-
-interface ParentProfile {
-  branch_id?: number;
-  branch_name?: string;
-}
-
-interface AddKidPayload {
-  name: string;
-  nickname?: string;
-  date_of_birth?: string;
-  pre_existing_conditions?: string;
-  branch_id: number;
-}
-
 export default function DashboardPage() {
   const qc = useQueryClient();
-  const { t, locale } = useT();
-  const { data: kids = [], isLoading } = useQuery<KidSummary[]>({
+  const { t } = useT();
+  const { data: kids = [], isLoading } = useQuery<any[]>({
     queryKey: ['my-children'],
     queryFn: () => client.get('/my/children').then(r => r.data),
   });
 
-  const { data: profile } = useQuery<ParentProfile>({
+  const { data: profile } = useQuery<any>({
     queryKey: ['my-profile'],
     queryFn: () => client.get('/my/profile').then(r => r.data),
   });
@@ -57,19 +28,19 @@ export default function DashboardPage() {
   const [kidErr, setKidErr] = useState('');
 
   const addKidMut = useMutation({
-    mutationFn: (d: AddKidPayload) => client.post('/students', d),
+    mutationFn: (d: any) => client.post('/students', d),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['my-children'] });
       setAddOpen(false);
       setKidForm({ name: '', nickname: '', date_of_birth: '', pre_existing_conditions: '' });
     },
-    onError: (e: unknown) => setKidErr(getErrorMessage(e, 'Failed to add child')),
+    onError: (e: any) => setKidErr(e?.response?.data?.error || 'Failed to add child'),
   });
 
   function submitAddKid() {
     setKidErr('');
     if (!kidForm.name.trim()) { setKidErr('Name is required'); return; }
-    if (!profile?.branch_id)  { setKidErr('Your branch is not set - please contact support'); return; }
+    if (!profile?.branch_id)  { setKidErr('Your branch is not set — please contact support'); return; }
     addKidMut.mutate({
       name: kidForm.name.trim(),
       nickname: kidForm.nickname.trim() || undefined,
@@ -81,12 +52,12 @@ export default function DashboardPage() {
 
   const approvedKids = kids.filter(k => k.approval_status === 'approved');
   const allUpcoming = approvedKids.flatMap(k =>
-    (k.upcoming_sessions || []).map((s) => ({
+    (k.upcoming_sessions || []).map((s: any, _i: number) => ({
       ...s,
       kidName: k.name,
       color: KID_COLORS[approvedKids.indexOf(k) % KID_COLORS.length],
     }))
-  ).sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+  ).sort((a: any, b: any) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
 
   const totalSessions = approvedKids.reduce((sum, k) => sum + (k.class_count || 0), 0);
   const totalRemaining = approvedKids.reduce((sum, k) => sum + (k.classes_remaining || 0), 0);
@@ -165,7 +136,7 @@ export default function DashboardPage() {
                     <p className="text-xs mt-1">{t('dashboard.bookedShowHere')}</p>
                   </div>
                 ) : (
-                  allUpcoming.slice(0, 8).map((s, i: number) => {
+                  allUpcoming.slice(0, 8).map((s: any, i: number) => {
                     const d = new Date(s.starts_at);
                     return (
                       <div key={i} className="flex items-center gap-4 px-6 py-3.5 border-b border-outline-variant last:border-none hover:bg-surface-container-low transition-colors">
@@ -177,7 +148,7 @@ export default function DashboardPage() {
                           <p className="font-semibold text-on-surface text-sm truncate">{s.course_name || 'Session'}</p>
                           <p className="text-xs text-on-surface-variant flex items-center gap-1">
                             <span className="material-symbols-outlined text-[12px]">schedule</span>
-                            {d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })} &bull; {s.kidName}
+                            {d.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })} &bull; {s.kidName}
                           </p>
                         </div>
                         <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
@@ -193,6 +164,7 @@ export default function DashboardPage() {
                 <div className="space-y-3">
                   {kids.map((kid, i) => {
                     const color = KID_COLORS[i % KID_COLORS.length];
+                    const isApproved = kid.approval_status === 'approved';
                     const classesUsed = kid.class_count ? kid.class_count - (kid.classes_remaining || 0) : 0;
                     const progress = kid.class_count ? classesUsed / kid.class_count : 0;
                     return (
@@ -320,6 +292,3 @@ export default function DashboardPage() {
     </AppShell>
   );
 }
-
-
-

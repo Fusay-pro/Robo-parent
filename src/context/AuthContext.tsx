@@ -16,20 +16,23 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const initialAccess = getAccessToken();
-  const initialPayload = initialAccess && !isExpired(initialAccess) ? decodeJwt(initialAccess) : null;
-  const [token, setToken] = useState<string | null>(initialPayload ? initialAccess : null);
-  const [role, setRole] = useState<string | null>(initialPayload?.role ?? null);
-  const [userId, setUserId] = useState<number | null>(initialPayload?.sub ?? null);
-  const [loading, setLoading] = useState<boolean>(() => {
-    if (!initialAccess) return false;
-    return isExpired(initialAccess);
-  });
+  const [token, setToken] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const access = getAccessToken();
     const refresh = localStorage.getItem('refresh_token');
-    if (!access || !isExpired(access)) return;
+    if (!access) { setLoading(false); return; }
+    if (!isExpired(access)) {
+      const payload = decodeJwt(access);
+      setToken(access);
+      setRole(payload?.role ?? null);
+      setUserId(payload?.sub ?? null);
+      setLoading(false);
+      return;
+    }
     if (refresh) {
       client.post('/auth/refresh', { refresh_token: refresh })
         .then(({ data }) => {
@@ -43,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .finally(() => setLoading(false));
     } else {
       clearTokens();
-      queueMicrotask(() => setLoading(false));
+      setLoading(false);
     }
   }, []);
 
