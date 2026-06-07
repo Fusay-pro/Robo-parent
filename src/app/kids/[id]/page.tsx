@@ -1,24 +1,24 @@
 'use client';
 
 import AppShell from '@/components/AppShell';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import client from '@/lib/api';
 import { useT } from '@/context/I18nContext';
+import CancellationModal from './_components/CancellationModal';
 
 const KID_COLORS = ['#0ea5e9', '#006686', '#bc0b3b', '#006591'];
-const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+const DAY_KEYS   = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 
 export default function KidDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
-  const qc = useQueryClient();
-  const { t } = useT();
+  const router  = useRouter();
+  const { t }   = useT();
 
   function formatTime(iso: string) {
     const d = new Date(iso);
-    let h = d.getHours();
+    let h   = d.getHours();
     const m = d.getMinutes();
     const ampm = h >= 12 ? 'PM' : 'AM';
     h = h % 12 || 12;
@@ -37,40 +37,12 @@ export default function KidDetailPage() {
     staleTime: 60_000,
   });
 
-  // Cancellation request modal
   const [cancelTarget, setCancelTarget] = useState<any>(null);
-  const [cancelReason, setCancelReason] = useState('');
-  const [cancelErr, setCancelErr]       = useState('');
 
-  const cancelMut = useMutation({
-    mutationFn: (body: any) => client.post('/my/requests', body),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['kid-detail', id] });
-      qc.invalidateQueries({ queryKey: ['parent-alerts'] });
-      setCancelTarget(null);
-      setCancelReason('');
-    },
-    onError: (e: any) => setCancelErr(e?.response?.data?.error || 'Failed to submit request'),
-  });
-
-  function submitCancellation() {
-    setCancelErr('');
-    if (cancelReason.trim().length < 5) {
-      setCancelErr(t('cancel.giveReason'));
-      return;
-    }
-    cancelMut.mutate({
-      type: 'cancellation',
-      kid_name: kid?.name || 'Student',
-      reason: cancelReason.trim(),
-      details: { enrollment_id: cancelTarget.enrollment_id, starts_at: cancelTarget.starts_at, course_name: cancelTarget.course_name },
-    });
-  }
-
-  const color = KID_COLORS[0];
+  const color      = KID_COLORS[0];
   const classesUsed = kid?.class_count ? kid.class_count - (kid.classes_remaining || 0) : 0;
-  const progress = kid?.class_count ? classesUsed / kid.class_count : 0;
-  const isApproved = kid?.approval_status === 'approved';
+  const progress    = kid?.class_count ? classesUsed / kid.class_count : 0;
+  const isApproved  = kid?.approval_status === 'approved';
 
   return (
     <AppShell>
@@ -86,20 +58,17 @@ export default function KidDetailPage() {
           </div>
         ) : (
           <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 md:py-6 space-y-5">
-            {/* Back button (outside hero) */}
             <button onClick={() => router.push('/dashboard')}
               className="inline-flex items-center gap-1 text-on-surface-variant hover:text-on-surface text-sm font-semibold px-2 py-1 -ml-2 rounded-lg transition-colors">
               <span className="material-symbols-outlined text-[18px]">arrow_back</span>
               {t('kid.back')}
             </button>
 
-            {/* Compact hero card */}
+            {/* Hero card */}
             <div className="relative rounded-3xl overflow-hidden shadow-sm" style={{ background: `linear-gradient(135deg, ${color} 0%, #006686 100%)` }}>
               <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '20px 20px' }} />
-
               <div className="relative px-6 md:px-8 py-6 md:py-7 flex items-center gap-4 md:gap-6">
-                <div className="w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-white/95 flex items-center justify-center text-3xl md:text-4xl font-bold shrink-0 shadow-lg"
-                  style={{ color }}>
+                <div className="w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-white/95 flex items-center justify-center text-3xl md:text-4xl font-bold shrink-0 shadow-lg" style={{ color }}>
                   {kid.name?.[0]?.toUpperCase() ?? '?'}
                 </div>
                 <div className="flex-1 min-w-0 text-white">
@@ -139,7 +108,7 @@ export default function KidDetailPage() {
               </div>
             </div>
 
-            {/* Medical note (if any) */}
+            {/* Medical note */}
             {kid.pre_existing_conditions && (
               <div className="bg-error-container/30 border border-error/20 rounded-2xl p-3.5 flex gap-3 items-start">
                 <span className="material-symbols-outlined text-error text-[20px] shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>medical_information</span>
@@ -150,7 +119,6 @@ export default function KidDetailPage() {
               </div>
             )}
 
-            {/* Main grid: Package (left) + Upcoming Sessions (right) on desktop */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {/* Package card */}
               {kid.package_name ? (
@@ -202,7 +170,7 @@ export default function KidDetailPage() {
                 {kid.upcoming_sessions?.length > 0 ? (
                   <div className="divide-y divide-outline-variant/30 flex-1 overflow-y-auto">
                     {kid.upcoming_sessions.map((s: any, i: number) => {
-                      const d = new Date(s.starts_at);
+                      const d       = new Date(s.starts_at);
                       const pending = s.cancellation_pending;
                       return (
                         <div key={i} className="flex items-center gap-3 md:gap-4 px-5 md:px-6 py-3.5 hover:bg-surface-container/40 transition-colors">
@@ -228,8 +196,7 @@ export default function KidDetailPage() {
                               {t('kid.pending')}
                             </span>
                           ) : s.enrollment_id ? (
-                            <button
-                              onClick={() => { setCancelTarget(s); setCancelReason(''); setCancelErr(''); }}
+                            <button onClick={() => setCancelTarget(s)}
                               className="text-[12px] font-semibold px-3 py-1.5 rounded-full bg-surface-container hover:bg-error-container hover:text-error text-on-surface-variant transition-colors shrink-0"
                               title={t('cancel.title')}>
                               {t('kid.requestCancel')}
@@ -277,10 +244,10 @@ export default function KidDetailPage() {
               ) : (
                 <div className="divide-y divide-outline-variant/30">
                   {attendance.map((a: any) => {
-                    const d = new Date(a.starts_at);
-                    const present  = a.status === 'present';
-                    const absent   = a.status === 'absent';
-                    const excused  = a.status === 'excused';
+                    const d       = new Date(a.starts_at);
+                    const present = a.status === 'present';
+                    const absent  = a.status === 'absent';
+                    const excused = a.status === 'excused';
                     const pillCls = present ? 'bg-emerald-100 text-emerald-700'
                                   : absent  ? 'bg-error/10 text-error'
                                   : excused ? 'bg-amber-100 text-amber-700'
@@ -316,60 +283,12 @@ export default function KidDetailPage() {
           </div>
         )}
 
-        {/* Cancellation request modal */}
-        {cancelTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setCancelTarget(null)} />
-            <div className="relative bg-surface rounded-3xl p-6 w-full max-w-md shadow-2xl z-10">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-orange-600 text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>event_busy</span>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-on-surface">{t('cancel.title')}</h3>
-                  <p className="text-xs text-on-surface-variant mt-0.5">{t('cancel.subtitle')}</p>
-                </div>
-                <button onClick={() => setCancelTarget(null)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-container transition-colors">
-                  <span className="material-symbols-outlined text-on-surface-variant">close</span>
-                </button>
-              </div>
-
-              <div className="bg-surface-container-low rounded-2xl p-3.5 mb-4">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">{t('cancel.class')}</p>
-                <p className="font-bold text-on-surface text-sm">{cancelTarget.course_name || 'Session'}</p>
-                <p className="text-xs text-on-surface-variant mt-0.5">{formatTime(cancelTarget.starts_at)}</p>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">{t('cancel.reason')} <span className="text-error">*</span></label>
-                <textarea
-                  value={cancelReason}
-                  onChange={e => setCancelReason(e.target.value)}
-                  placeholder={t('cancel.reasonPlace')}
-                  rows={3}
-                  className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
-                />
-                <p className="text-[11px] text-on-surface-variant mt-1.5">
-                  {t('cancel.warning')}
-                </p>
-              </div>
-
-              {cancelErr && <p className="text-xs text-error bg-error-container/30 rounded-xl px-3 py-2 mb-3">{cancelErr}</p>}
-
-              <div className="flex gap-3">
-                <button onClick={() => setCancelTarget(null)}
-                  className="flex-1 py-2.5 rounded-xl border border-outline-variant text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-colors">
-                  {t('cancel.keep')}
-                </button>
-                <button onClick={submitCancellation} disabled={cancelMut.isPending}
-                  className="flex-1 py-2.5 rounded-xl bg-orange-500 text-white text-sm font-bold hover:opacity-90 disabled:opacity-50 transition-opacity">
-                  {cancelMut.isPending ? t('cancel.sending') : t('cancel.send')}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <CancellationModal
+          target={cancelTarget}
+          kidName={kid?.name || 'Student'}
+          kidId={id}
+          onClose={() => setCancelTarget(null)}
+        />
       </div>
     </AppShell>
   );

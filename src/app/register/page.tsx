@@ -7,30 +7,29 @@ import client from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useT } from '@/context/I18nContext';
 import LanguageToggle from '@/components/LanguageToggle';
+import BrandingPanel from './_components/BrandingPanel';
 
 interface Branch { branch_id: number; name: string; address?: string; phone?: string; }
 
 export default function RegisterPage() {
   const { signIn } = useAuth();
-  const router = useRouter();
-  const { t } = useT();
-  const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ name: '', email: '', phone: '', line_id: '', password: '', branch_id: '' });
+  const router     = useRouter();
+  const { t }      = useT();
+  const [step,     setStep]     = useState(1);
+  const [form,     setForm]     = useState({ name: '', email: '', phone: '', line_id: '', password: '', branch_id: '' });
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [otp, setOtp] = useState(['', '', '', '']);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [otp,      setOtp]      = useState(['', '', '', '']);
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState('');
   const otpRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
 
-  // Fetch branches on mount
   useEffect(() => {
     client.get('/public/branches')
       .then(r => {
         setBranches(r.data);
-        // Auto-select if only one branch
         if (r.data.length === 1) setForm(f => ({ ...f, branch_id: String(r.data[0].branch_id) }));
       })
-      .catch(() => { /* ignore — user can still see error on submit */ });
+      .catch(() => { /* ignore — user sees error on submit */ });
   }, []);
 
   const handleStep1 = async (e: React.FormEvent) => {
@@ -86,41 +85,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left — branding panel */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-16 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #006686 100%)' }}>
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '32px 32px' }} />
-        <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-white/5 blur-3xl" />
-        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-white/5 blur-3xl" />
-
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-            <span className="material-symbols-outlined text-white" style={{ fontVariationSettings: "'FILL' 1" }}>smart_toy</span>
-          </div>
-          <span className="text-white font-bold text-xl">RoboKids</span>
-        </div>
-
-        <div className="relative z-10">
-          <h1 className="text-5xl font-bold text-white leading-tight mb-6">
-            Join the<br />RoboKids<br />Community
-          </h1>
-          <p className="text-white/70 text-lg leading-relaxed max-w-sm">
-            Create your parent account to start tracking sessions, communicating with staff, and watching your child grow.
-          </p>
-        </div>
-
-        <div className="relative z-10 space-y-3">
-          {[
-            { icon: 'check_circle', text: 'Free to join — no credit card needed' },
-            { icon: 'check_circle', text: 'Real-time session updates' },
-            { icon: 'check_circle', text: 'Direct line to your child\'s teacher' },
-          ].map(({ icon, text }) => (
-            <div key={text} className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-white/80 text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>{icon}</span>
-              <span className="text-white/80 text-sm">{text}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <BrandingPanel />
 
       {/* Right — form */}
       <div className="flex-1 flex items-center justify-center p-4 sm:p-8 bg-background">
@@ -157,27 +122,23 @@ export default function RegisterPage() {
 
               <form onSubmit={handleStep1} className="space-y-4">
                 {[
-                  { field: 'name', label: t('register.fullName'), icon: 'person', type: 'text', placeholder: 'John Doe', required: true },
-                  { field: 'email', label: t('register.email'), icon: 'mail', type: 'email', placeholder: 'parent@example.com', required: true },
-                  { field: 'phone', label: t('register.phone'), icon: 'call', type: 'tel', placeholder: '+66 81 234 5678', required: true },
+                  { field: 'name',  label: t('register.fullName'), icon: 'person', type: 'text',  placeholder: 'John Doe',            required: true },
+                  { field: 'email', label: t('register.email'),    icon: 'mail',   type: 'email', placeholder: 'parent@example.com',  required: true },
+                  { field: 'phone', label: t('register.phone'),    icon: 'call',   type: 'tel',   placeholder: '+66 81 234 5678',     required: true },
                 ].map(({ field, label, icon, type, placeholder, required }) => (
                   <div key={field} className="space-y-1.5">
                     <label className="text-sm font-semibold text-on-surface-variant">{label}</label>
                     <div className="flex items-center gap-3 rounded-xl border border-outline-variant bg-surface-container-low px-4 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 transition-all">
                       <span className="material-symbols-outlined text-outline text-[20px]">{icon}</span>
-                      <input
-                        type={type}
-                        placeholder={placeholder}
-                        value={(form as any)[field]}
+                      <input type={type} placeholder={placeholder} value={(form as any)[field]}
                         onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
                         required={required}
-                        className="flex-1 bg-transparent border-none focus:ring-0 py-3.5 text-on-surface placeholder:text-outline outline-none"
-                      />
+                        className="flex-1 bg-transparent border-none focus:ring-0 py-3.5 text-on-surface placeholder:text-outline outline-none" />
                     </div>
                   </div>
                 ))}
 
-                {/* Line ID (optional) */}
+                {/* Line ID */}
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-on-surface-variant flex items-center gap-2">
                     {t('register.lineId')}
@@ -185,36 +146,24 @@ export default function RegisterPage() {
                   </label>
                   <div className="flex items-center gap-3 rounded-xl border border-outline-variant bg-surface-container-low px-4 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 transition-all">
                     <span className="material-symbols-outlined text-outline text-[20px]">chat</span>
-                    <input
-                      type="text"
-                      placeholder="@yourname"
-                      value={form.line_id}
+                    <input type="text" placeholder="@yourname" value={form.line_id}
                       onChange={e => setForm(f => ({ ...f, line_id: e.target.value }))}
-                      className="flex-1 bg-transparent border-none focus:ring-0 py-3.5 text-on-surface placeholder:text-outline outline-none"
-                    />
+                      className="flex-1 bg-transparent border-none focus:ring-0 py-3.5 text-on-surface placeholder:text-outline outline-none" />
                   </div>
                 </div>
 
-                {/* Branch picker */}
+                {/* Branch */}
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-on-surface-variant">{t('register.branch')}</label>
                   <div className="flex items-center gap-3 rounded-xl border border-outline-variant bg-surface-container-low px-4 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 transition-all">
                     <span className="material-symbols-outlined text-outline text-[20px]">storefront</span>
-                    <select
-                      value={form.branch_id}
-                      onChange={e => setForm(f => ({ ...f, branch_id: e.target.value }))}
-                      required
-                      className="flex-1 bg-transparent border-none focus:ring-0 py-3.5 text-on-surface outline-none cursor-pointer"
-                    >
+                    <select value={form.branch_id} onChange={e => setForm(f => ({ ...f, branch_id: e.target.value }))} required
+                      className="flex-1 bg-transparent border-none focus:ring-0 py-3.5 text-on-surface outline-none cursor-pointer">
                       <option value="">{t('register.selectBranch')}</option>
-                      {branches.map(b => (
-                        <option key={b.branch_id} value={b.branch_id}>{b.name}</option>
-                      ))}
+                      {branches.map(b => <option key={b.branch_id} value={b.branch_id}>{b.name}</option>)}
                     </select>
                   </div>
-                  {branches.length === 0 && (
-                    <p className="text-xs text-on-surface-variant">{t('register.loadingBranches')}</p>
-                  )}
+                  {branches.length === 0 && <p className="text-xs text-on-surface-variant">{t('register.loadingBranches')}</p>}
                 </div>
 
                 {/* Password */}
@@ -222,15 +171,10 @@ export default function RegisterPage() {
                   <label className="text-sm font-semibold text-on-surface-variant">{t('register.password')}</label>
                   <div className="flex items-center gap-3 rounded-xl border border-outline-variant bg-surface-container-low px-4 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 transition-all">
                     <span className="material-symbols-outlined text-outline text-[20px]">lock</span>
-                    <input
-                      type="password"
-                      placeholder={t('register.minChars')}
-                      value={form.password}
+                    <input type="password" placeholder={t('register.minChars')} value={form.password}
                       onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                      required
-                      minLength={8}
-                      className="flex-1 bg-transparent border-none focus:ring-0 py-3.5 text-on-surface placeholder:text-outline outline-none"
-                    />
+                      required minLength={8}
+                      className="flex-1 bg-transparent border-none focus:ring-0 py-3.5 text-on-surface placeholder:text-outline outline-none" />
                   </div>
                 </div>
 
@@ -261,17 +205,10 @@ export default function RegisterPage() {
               <form onSubmit={handleStep2} className="space-y-6">
                 <div className="flex gap-2 sm:gap-3">
                   {otp.map((v, i) => (
-                    <input
-                      key={i}
-                      ref={otpRefs[i]}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={v}
+                    <input key={i} ref={otpRefs[i]} type="text" inputMode="numeric" maxLength={1} value={v}
                       onChange={e => handleOtpChange(i, e.target.value)}
                       onKeyDown={e => handleOtpKey(i, e)}
-                      className="flex-1 h-16 text-center text-2xl font-bold bg-surface-container-low border-2 border-outline-variant rounded-xl focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all"
-                    />
+                      className="flex-1 h-16 text-center text-2xl font-bold bg-surface-container-low border-2 border-outline-variant rounded-xl focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all" />
                   ))}
                 </div>
 
