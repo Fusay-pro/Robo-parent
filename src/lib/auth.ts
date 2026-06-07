@@ -1,7 +1,9 @@
 export interface JwtPayload {
-  sub: number;
-  role: string;
-  exp: number;
+  user_id:   number;
+  role:      string;
+  branch_id: number;
+  name:      string;
+  exp:       number;
 }
 
 export function decodeJwt(token: string): JwtPayload | null {

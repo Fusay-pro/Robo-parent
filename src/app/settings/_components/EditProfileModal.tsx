@@ -6,7 +6,7 @@ import { useT } from '@/context/I18nContext';
 
 interface Props {
   open: boolean;
-  initialData: { name: string; phone: string; line_id: string };
+  initialData: { name: string; phone: string; line_user_id: string };
   onClose: () => void;
 }
 
@@ -29,9 +29,9 @@ export default function EditProfileModal({ open, initialData, onClose }: Props) 
     setErr('');
     if (!form.name.trim()) { setErr(t('settings.nameEmpty')); return; }
     mut.mutate({
-      name:    form.name.trim(),
-      phone:   form.phone.trim() || undefined,
-      line_id: form.line_id.trim() || undefined,
+      name:         form.name.trim(),
+      phone:        form.phone.trim() || undefined,
+      line_user_id: form.line_user_id.trim() || undefined,
     });
   }
 
@@ -65,7 +65,7 @@ export default function EditProfileModal({ open, initialData, onClose }: Props) 
           </div>
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5">{t('settings.lineId')}</label>
-            <input type="text" value={form.line_id}
+            <input type="text" value={form.line_user_id}
               onChange={e => setForm(f => ({ ...f, line_id: e.target.value }))}
               placeholder={t('settings.lineIdPlace')}
               className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />

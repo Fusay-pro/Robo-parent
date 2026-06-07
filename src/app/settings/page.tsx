@@ -118,7 +118,7 @@ export default function SettingsPage() {
                   { icon: 'person', label: t('settings.name'),   val: profile?.name },
                   { icon: 'call',   label: t('settings.phone'),  val: profile?.phone },
                   { icon: 'mail',   label: t('settings.email'),  val: profile?.email },
-                  { icon: 'chat',   label: t('settings.lineId'), val: profile?.line_id },
+                  { icon: 'chat',   label: t('settings.lineId'), val: profile?.line_user_id },
                 ].map(row => (
                   <div key={row.label} className="flex items-center gap-4 px-6 py-4">
                     <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -302,7 +302,7 @@ export default function SettingsPage() {
 
       <EditProfileModal
         open={profileModal}
-        initialData={{ name: profile?.name || '', phone: profile?.phone || '', line_id: profile?.line_id || '' }}
+        initialData={{ name: profile?.name || '', phone: profile?.phone || '', line_user_id: profile?.line_user_id || '' }}
         onClose={() => setProfileModal(false)}
       />
       <AddChildModal

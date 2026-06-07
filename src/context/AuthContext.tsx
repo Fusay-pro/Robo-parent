@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const payload = decodeJwt(access);
       setToken(access);
       setRole(payload?.role ?? null);
-      setUserId(payload?.sub ?? null);
+      setUserId(payload?.user_id ?? null);
       setLoading(false);
       return;
     }
@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const payload = decodeJwt(data.access_token);
           setToken(data.access_token);
           setRole(payload?.role ?? null);
-          setUserId(payload?.sub ?? null);
+          setUserId(payload?.user_id ?? null);
         })
         .catch(() => clearTokens())
         .finally(() => setLoading(false));
@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const payload = decodeJwt(access);
     setToken(access);
     setRole(payload?.role ?? null);
-    setUserId(payload?.sub ?? null);
+    setUserId(payload?.user_id ?? null);
   };
 
   const signOut = () => {

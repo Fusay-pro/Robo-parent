@@ -73,7 +73,7 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
     try {
-      const { data } = await client.post('/auth/verify-otp', { email: form.email, otp: otp.join('') });
+      const { data } = await client.post('/auth/verify-otp', { email: form.email, code: otp.join('') });
       signIn(data.access_token, data.refresh_token);
       router.replace('/dashboard');
     } catch (err: any) {
