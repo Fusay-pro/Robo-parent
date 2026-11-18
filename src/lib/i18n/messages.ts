@@ -15,6 +15,16 @@ export const messages = {
     'nav.yourBranch':  'Your branch',
     'nav.parentPortal':'Parent Portal',
 
+    // Home
+    'home.headline1':   'Nurturing',
+    'home.headline2':   "Tomorrow's",
+    'home.headline3':   'Engineers',
+    'home.tagline':     "Track your child's robotics journey, manage sessions, and stay connected with their learning progress.",
+    'home.toPortal':    'To The Portal',
+    'home.signedInAs':  'You are signed in',
+    'home.newHere':     'New here?',
+    'home.createAccount':'Create an account',
+
     // Login
     'login.title':         'Welcome back',
     'login.subtitle':      'Sign in to manage your kids and classes.',
@@ -335,6 +345,16 @@ export const messages = {
     'nav.welcomeBack': 'ยินดีต้อนรับ',
     'nav.yourBranch':  'สาขาของคุณ',
     'nav.parentPortal':'พอร์ทัลผู้ปกครอง',
+
+    // Home
+    'home.headline1':   'บ่มเพาะ',
+    'home.headline2':   'วิศวกร',
+    'home.headline3':   'แห่งอนาคต',
+    'home.tagline':     'ติดตามเส้นทางหุ่นยนต์ของลูกคุณ จัดการคลาสเรียน และใกล้ชิดกับพัฒนาการการเรียนรู้ของพวกเขา',
+    'home.toPortal':    'เข้าสู่พอร์ทัล',
+    'home.signedInAs':  'คุณเข้าสู่ระบบแล้ว',
+    'home.newHere':     'ยังไม่เคยใช้งาน?',
+    'home.createAccount':'สร้างบัญชีใหม่',
 
     // Login
     'login.title':         'ยินดีต้อนรับกลับ',
